@@ -11,7 +11,7 @@ chmod +x *.sh
 echo "To see the screen, you need to reboot your Raspberry Pi. Do you want to do it now?"
 select yn in "Yes" "No"; do
     case $yn in
-        Yes ) reboot; break;;
+        Yes ) ./umbrel/scripts/stop; reboot; break;;
         No ) exit;;
     esac
 done

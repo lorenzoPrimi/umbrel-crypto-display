@@ -23,8 +23,9 @@ sudo bash install.sh
 ```
 
 2. Reboot your Rasperry Pi
-You'll need to reboot after running the install script to enable the GPIO screen.
+You'll need to reboot after running the install script to enable the GPIO screen. Do a safe shutdown of your node.
 ```
+sudo ./umbrel/scripts/stop
 sudo reboot
 ```
 
