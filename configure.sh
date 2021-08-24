@@ -1,5 +1,5 @@
 #!/bin/bash
-CRYPTOS="cryptos = ["
+CRYPTOS="cryptos=["
 echo "Enter the cryptocurrency tickers you want to show separated by commas (ex: btc, eth, ada)"
 IFS=',' read -r -a array
 for index in "${!array[@]}"
