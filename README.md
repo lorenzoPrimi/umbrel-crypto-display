@@ -4,7 +4,7 @@ This project works natively for [Umbrel OS](https://getumbrel.com/)
 
 Inspired from [nodeyez](https://github.com/vicariousdrama/nodeyez)
 
-![image of the 3.5" TFT screen for raspberry pi](./sample-images/screen.jpg)
+![image of the 3.5" TFT screen for raspberry pi](./images/screen.jpg)
 
 ## Pre-requisites
 
@@ -45,13 +45,13 @@ To stop the script, execute `./stop.sh` (requires the sudo password)
 
 
 ##  Samples
-![btc](./sample-images/btc.png)
+![btc](./images/btc.png)
 
-![eth](./sample-images/eth.png)
+![eth](./images/eth.png)
 
-![ada](./sample-images/ada.png)
+![ada](./images/ada.png)
 
-![luna](./sample-images/luna.png)
+![luna](./images/luna.png)
 
 ## ToDo / Plans / Known Issues
 
