@@ -11,8 +11,6 @@ from PIL import Image, ImageDraw, ImageColor, ImageFont
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter, Retry
 
-load_dotenv()
-
 
 def find_file(path: str, filename: str):
     for root, dirs, files in os.walk(path):
@@ -30,27 +28,63 @@ def rel_path(relative_path: str) -> str:
     return abspath(joinpath)
 
 
-def config_get_list(name: str, default: Optional[Any] = None) -> List[str]:
-    val = os.getenv(name, default)
-    if val:
-        return val.split(",")
-    else:
-        return []
+class Config:
+    def __init__(self, *args, **kwargs):
+        load_dotenv(*args, **kwargs)
 
+    def get(self, name: str, default: Optional[Any] = None) -> str:
+        return os.getenv(name, default)
 
-def config_get_int(name: str, default: Optional[int] = None) -> Optional[int]:
-    val = os.getenv(name, default)
-    if val is None:
-        return default
-    return int(val)
+    def get_list(self, name: str, default: Optional[Any] = None) -> List[str]:
+        val = self.get(name, default)
+        if val:
+            return val.split(",")
+        else:
+            return []
 
+    def get_int(self, name: str, default: Optional[int] = None) -> Optional[int]:
+        val = self.get(name, default)
+        if val is None:
+            return default
+        return int(val)
 
-def config_get_bool(name: str, default: str = '') -> bool:
-    return os.getenv(name, default).lower() in ['1', 'yes', 'true', 'y']
+    def get_bool(self, name: str, default: str = '') -> bool:
+        val = self.get(name, default)
+        if val is None:
+            val = default
+        return str(val).lower() in ['1', 'yes', 'true', 'y']
 
+    @property
+    def cryptos(self) -> List[str]:
+        return self.get_list("CRYPTOS", "eth,btc")
 
-def config_get(name: str, default: Optional[Any] = None) -> str:
-    return os.getenv(name, default)
+    @property
+    def output_folder(self) -> str:
+        return self.get("OUTPUT_FOLDER", "../images/")
+
+    @property
+    def frame_buffer(self) -> int:
+        return self.get_int('FRAME_BUFFER', 0)
+
+    @property
+    def virtual_terminal(self) -> Optional[int]:
+        return self.get_int('VIRTUAL_TERMINAL', None)
+
+    @property
+    def force_screen_size(self) -> Optional[Tuple[int, int]]:
+        val = self.get_list("FORCE_SCREEN_SIZE", None)
+        if not val:
+            return None
+        assert len(val) == 2
+        return cast(Tuple[int, int], tuple([int(v) for v in val]))
+
+    @property
+    def save_image_file(self) -> bool:
+        return self.get_bool("SAVE_IMAGE_FILE", 'y')
+
+    @property
+    def show_logo(self) -> bool:
+        return self.get_bool("SHOW_LOGO", 'n')
 
 
 class FrameBuffer:
@@ -445,18 +479,18 @@ class CryptoPrice:
     color_FFFFFF = ImageColor.getrgb("#ffffff")
 
     def __init__(self):
-        self.cryptos = config_get_list("CRYPTOS", "eth,btc")
-        self.output_folder = rel_path(config_get("OUTPUT_FOLDER", "../images/"))
+        self.config = Config()
+        self.cryptos = self.config.cryptos
+        self.output_folder = rel_path(self.config.output_folder)
         self.coingecko = CoingeckoApi()
         self.fb = FrameBuffer(
-            dev_no=config_get_int('FRAME_BUFFER', 0),
-            vt=config_get_int('VIRTUAL_TERMINAL', None),
+            dev_no=self.config.frame_buffer,
+            vt=self.config.virtual_terminal,
         )
-        force_screen_size = config_get_list("FORCE_SCREEN_SIZE", None)
-        self.save_file = config_get_bool("SAVE_IMAGE_FILE", 'y')
-        self.show_logo = config_get_bool("SHOW_LOGO", 'n')
-        if force_screen_size:
-            self.screen_size = tuple([int(t) for t in force_screen_size])
+        self.save_file = self.config.save_image_file
+        self.show_logo = self.config.show_logo
+        if self.config.force_screen_size:
+            self.screen_size = self.config.force_screen_size
         else:
             self.screen_size = self.fb.size
         self.fb.validate()
