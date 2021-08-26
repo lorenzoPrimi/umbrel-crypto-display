@@ -1,6 +1,7 @@
 import io
 import logging
 import os
+import time
 from datetime import datetime
 from decimal import Decimal
 from typing import Tuple, cast, List, Optional, Any, Dict
@@ -47,15 +48,18 @@ def config_get_int(name: str, default: Optional[int] = None) -> Optional[int]:
 def config_get_bool(name: str, default: str = '') -> bool:
     return os.getenv(name, default).lower() in ['1', 'yes', 'true', 'y']
 
+
 def config_get(name: str, default: Optional[Any] = None) -> str:
     return os.getenv(name, default)
 
 
 class FrameBuffer:
     _dev_no: int = 0
+    _vt: Optional[int] = None
 
-    def __init__(self, dev_no: int):
+    def __init__(self, dev_no: int, vt: Optional[int] = None):
         self._dev_no = dev_no
+        self._vt = vt
 
     @property
     def config_dir(self) -> str:
@@ -76,6 +80,12 @@ class FrameBuffer:
     @property
     def fb_path(self) -> str:
         return f"/dev/fb{self._dev_no}"
+
+    @property
+    def vt_path(self) -> Optional[str]:
+        if self._vt is None:
+            return None
+        return f'/dev/tty{self._vt}'
 
     def validate(self):
         assert os.path.exists(self.fb_path)
@@ -98,7 +108,6 @@ class FrameBuffer:
         return f"FrameBuffer( stride: {self.stride}, size: {self.size}, bits per pixel: {self.bits_per_pixel} )"
 
     def to_rgba(self, image: Image) -> bytes:
-        print(image.mode, self.bits_per_pixel)
         if image.mode == "RGBA" and self.bits_per_pixel == 32:
             return image.tobytes()
         if image.mode == "RGB" and self.bits_per_pixel == 32:
@@ -107,7 +116,8 @@ class FrameBuffer:
             return image.tobytes()
         if image.mode == "RGB" and self.bits_per_pixel == 16:
             return bytes([x for r, g, b in image.getdata() for x in ((g & 0x1c) << 3 | (b >> 3), r & 0xf8 | (g >> 3))])
-        print("WARNING: raw output")
+
+        logging.warning("frame buffer using raw output")
         return image.tobytes()
 
     def show(self, image: Image):
@@ -118,6 +128,35 @@ class FrameBuffer:
         bytes_ = self.to_rgba(target)
         with open(self.fb_path, 'wb') as fd:
             fd.write(bytes_)
+
+    def hide_vt_cursor(self):
+        if not self.vt_path:
+            return
+        with open(self.vt_path, 'w') as fp:
+            fp.write("\x1b[?25l")
+
+    def show_vt_cursor(self):
+        if not self.vt_path:
+            return
+        with open(self.vt_path, 'w') as fp:
+            fp.write("\x1b[?25h")
+
+    def __enter__(self):
+        self.hide_vt_cursor()
+        if self._vt is None:
+            return
+        try:
+            os.system(f'con2fbmap {self._dev_no} {self._vt}')
+        except Exception as e:
+            logging.exception(e)
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.show_vt_cursor()
+        try:
+            os.system(f'con2fbmap 0 {self._vt}')
+        except Exception as e:
+            logging.exception(e)
 
 
 class CoingeckoApi:
@@ -409,7 +448,10 @@ class CryptoPrice:
         self.cryptos = config_get_list("CRYPTOS", "eth,btc")
         self.output_folder = rel_path(config_get("OUTPUT_FOLDER", "../images/"))
         self.coingecko = CoingeckoApi()
-        self.fb = FrameBuffer(0)
+        self.fb = FrameBuffer(
+            dev_no=config_get_int('FRAME_BUFFER', 0),
+            vt=config_get_int('VIRTUAL_TERMINAL', None),
+        )
         force_screen_size = config_get_list("FORCE_SCREEN_SIZE", None)
         self.save_file = config_get_bool("SAVE_IMAGE_FILE", 'y')
         self.show_logo = config_get_bool("SHOW_LOGO", 'n')
@@ -526,13 +568,20 @@ class CryptoPrice:
             except Exception as e:
                 logging.exception(e)
 
-    def create_all_images(self):
+    def create_all_images(self, interval=15):
         for t in self.cryptos:
             self.createimage(t)
+            time.sleep(interval)
 
+    def __enter__(self):
+        self.fb.__enter__()
+        return self
 
-# TODO: con2fbmap to wanted tty
-# TODO: disable cursor blink in tty ( $ tput civis > /dev/tty2 )
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.fb.__exit__(exc_type, exc_val, exc_tb)
+
 
 if __name__ == '__main__':
-    CryptoPrice().create_all_images()
+    with CryptoPrice() as crypto_price:
+        while True:
+            crypto_price.create_all_images()
