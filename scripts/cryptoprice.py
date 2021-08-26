@@ -44,6 +44,9 @@ def config_get_int(name: str, default: Optional[int] = None) -> Optional[int]:
     return int(val)
 
 
+def config_get_bool(name: str, default: str = '') -> bool:
+    return os.getenv(name, default).lower() in ['1', 'yes', 'true', 'y']
+
 def config_get(name: str, default: Optional[Any] = None) -> str:
     return os.getenv(name, default)
 
@@ -402,14 +405,19 @@ class CryptoPrice:
     color_000000 = ImageColor.getrgb("#000000")
     color_FFFFFF = ImageColor.getrgb("#ffffff")
 
-    save_file = True
-
     def __init__(self):
         self.cryptos = config_get_list("CRYPTOS", "eth,btc")
         self.output_folder = rel_path(config_get("OUTPUT_FOLDER", "../images/"))
         self.coingecko = CoingeckoApi()
         self.fb = FrameBuffer(0)
-        # self.fb.validate()
+        force_screen_size = config_get_list("FORCE_SCREEN_SIZE", None)
+        self.save_file = config_get_bool("SAVE_IMAGE_FILE", 'y')
+        self.show_logo = config_get_bool("SHOW_LOGO", 'n')
+        if force_screen_size:
+            self.screen_size = tuple([int(t) for t in force_screen_size])
+        else:
+            self.screen_size = self.fb.size
+        self.fb.validate()
 
     def drawsatssquare(self, draw, dc, dr, spf, satw, bpx, bpy):
         satsleft = spf
@@ -462,7 +470,7 @@ class CryptoPrice:
         if d % 1 == 0:
             s = f"{d:,.0f}"
         elif d > 1000:
-            s = f"{d:,.2f}"
+            s = f"{d:,.0f}"
         elif d > 100:
             s = f"{d:,.4f}"
         elif d > 1:
@@ -476,6 +484,7 @@ class CryptoPrice:
     def getpriceinfo(self, ticker):
         coin = self.coingecko.get_coin_by_symbol(ticker)
         response = self.coingecko.get_coin(coin_id=coin['id'], market_data=True)
+
         return {
             'name': response['name'],
             'price': self._round_price(response['market_data']['current_price']['usd']),
@@ -483,12 +492,13 @@ class CryptoPrice:
             'high': self._round_price(response['market_data']['high_24h']['usd']),
             'low': self._round_price(response['market_data']['low_24h']['usd']),
             'percentage': round(response['market_data']['price_change_percentage_24h'], 2),
-            'image': Image.open(io.BytesIO(requests.get(response['image']['thumb']).content), 'r')
+            # thumb, small, large
+            'image': Image.open(io.BytesIO(requests.get(response['image']['small']).content), 'r').convert('RGBA')
         }
 
     def createimage(self, ticker):
         pi = self.getpriceinfo(ticker)
-        width, height = self.fb.size
+        width, height = self.screen_size
         # satw = int(math.floor(width / 87))
         # padleft = int(math.floor((width - (87 * satw)) / 2))
         padtop = 40
@@ -496,7 +506,10 @@ class CryptoPrice:
         draw = ImageDraw.Draw(im)
         self.drawcenteredtext(draw, pi['last'], 128, int(width / 2), int(height / 2), self.color_D9D9D9)
         self.drawcenteredtext(draw, pi['last'], 128, int(width / 2) - 2, int(height / 2) - 2, self.color_FFFFFF)
-        self.drawcenteredtext(draw, f"{pi['name']} price:", 24, int(width / 2), int(padtop / 2))
+        self.drawcenteredtext(draw, f"{pi['name']} price:", 24, int(width / 2), int(padtop))
+        if self.show_logo:
+            logo_image: Image = pi['image']
+            im.paste(logo_image, (int(width * 0.05), int((padtop - logo_image.size[1] / 2) / 2)))
         perc_color = self.color_green if pi['percentage'] >= 0 else self.color_red
         self.drawcenteredtext(draw, f"24h: {pi['percentage']:.2f} %", 20, int(width / 8 * 4), height - padtop,
                               perc_color)
