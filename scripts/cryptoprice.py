@@ -90,8 +90,8 @@ def createimage(ticker, width=480, height=320):
         drawcenteredtext(draw, "24h: " + str(percentage) + "%", 20, int(width/8*4), height-padtop, colorGreen)
     if percentage < 0 :
         drawcenteredtext(draw, "24h: " + str(percentage) + "%", 20, int(width/8*4), height-padtop, colorRed)
-    drawcenteredtext(draw, "High: " + str(low), 20, int(width/8*7), height-padtop)
-    drawcenteredtext(draw, "Low: " + str(high), 20, int(width/8*1), height-padtop)
+    drawcenteredtext(draw, "High: " + str(high), 20, int(width/8*7), height-padtop)
+    drawcenteredtext(draw, "Low: " + str(low), 20, int(width/8*1), height-padtop)
     drawbottomlefttext(draw, "Market data by coingecko", 16, 0, height, color40FF40)
     drawbottomrighttext(draw, "as of " + getdateandtime(), 12, width, height)
     outputFile = outputFolder + ticker + ".png"
