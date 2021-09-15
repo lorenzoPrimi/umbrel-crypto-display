@@ -1,5 +1,6 @@
+import os
 from datetime import datetime
-from typing import Tuple, Iterator, Any, Union
+from typing import Tuple, Iterator, Any, Optional, List, Literal
 
 from PIL import ImageColor, ImageFont, ImageDraw
 
@@ -148,13 +149,17 @@ class iScriptImageGenerator:
 import pygame
 import threading
 
+DriverType = Literal[
+    "x11", "dga", "fbcon", "directfb", "ggi", "vgl", "svgalib", "aalib",  # Unix
+    "windib", "directx"  # Windows
+]
+
 
 class iPygameScript(threading.Thread):
 
-    def __init__(self):
+    def __init__(self, drivers: Optional[List[str]] = None):
         super().__init__()
-        # http://www.pygame.org/docs/ref/display.html#pygame.display.init
-        pygame.display.init()
+        self._display_init(drivers)
         flags = pygame.FULLSCREEN | pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF
         self.screen = pygame.display.set_mode(self.size, flags, 32)
         self.screen.fill((0, 0, 0))
@@ -163,7 +168,20 @@ class iPygameScript(threading.Thread):
         self.stop_event = threading.Event()
 
     def __del__(self):
-        pygame.display.quit()
+        self.quit()
+
+    def _display_init(self, drivers: Optional[List[DriverType]] = None):
+        # http://www.pygame.org/docs/ref/display.html#pygame.display.init
+        if not drivers:
+            pygame.display.init()
+            return
+        for driver in drivers:
+            os.environ['SDL_VIDEODRIVER'] = driver
+            try:
+                pygame.display.init()
+            except pygame.error:
+                continue
+            break
 
     @property
     def size(self):
@@ -175,6 +193,7 @@ class iPygameScript(threading.Thread):
         while not self.quit_event():
             self.step()
             pygame.display.flip()
+        self.quit()
 
     def init(self):
         pass
@@ -193,3 +212,7 @@ class iPygameScript(threading.Thread):
                 self.stop()
                 return True
         return False
+
+    def quit(self):
+        pygame.display.quit()
+        pygame.quit()

@@ -3,8 +3,6 @@ import logging
 import os
 import time
 
-from libs.ifb import iFB
-
 try:
     from libs import *
 except ImportError as e:
@@ -41,9 +39,13 @@ def run_script(
 
     if issubclass(script_class, iPygameScript):
         script_object: iPygameScript = script_class()
-        script_object.start()
-        time.sleep(refresh_interval)
-        script_object.stop()
+        try:
+            script_object.start()
+            time.sleep(refresh_interval)
+            script_object.stop()
+            script_object.join()
+        finally:
+            script_object.quit()
 
 
 if __name__ == '__main__':

@@ -1,9 +1,9 @@
 import os
 from typing import Optional, List, cast, Tuple
 
-__all__ = ['iFB']
-
 from PIL import Image
+
+__all__ = ['iFB']
 
 
 class iFB:
