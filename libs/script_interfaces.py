@@ -6,7 +6,7 @@ from PIL import ImageColor, ImageFont, ImageDraw
 from .config import Config
 from .utils import find_file
 
-__all__ = ['iScriptImageGenerator']
+__all__ = ['iScriptImageGenerator', 'iPygameScript']
 
 default_color_text = ImageColor.getrgb("#ffffff")
 
@@ -47,7 +47,7 @@ class iScriptImageGenerator:
             fontsize: int,
             x: int,
             y: int,
-            textcolor: Union[ImageColor, Tuple[int, int, int]] = default_color_text
+            textcolor: Tuple[int, int, int] = default_color_text
     ):
         thefont = self.getfont(fontsize)
         sw, sh = draw.textsize(s, thefont)
@@ -63,7 +63,7 @@ class iScriptImageGenerator:
             fontsize: int,
             x: int,
             y: int,
-            textcolor: Union[ImageColor, Tuple[int, int, int]] = default_color_text
+            textcolor: Tuple[int, int, int] = default_color_text
     ):
         thefont = self.getfont(fontsize)
         sw, sh = draw.textsize(s, thefont)
@@ -79,7 +79,7 @@ class iScriptImageGenerator:
             fontsize: int,
             x: int,
             y: int,
-            textcolor: Union[ImageColor, Tuple[int, int, int]] = default_color_text
+            textcolor: Tuple[int, int, int] = default_color_text
     ):
         thefont = self.getfont(fontsize)
         sw, sh = draw.textsize(s, thefont)
@@ -132,7 +132,7 @@ class iScriptImageGenerator:
             fontsize: int,
             x: int,
             y: int,
-            textcolor: Union[ImageColor, Tuple[int, int, int]] = default_color_text
+            textcolor: Tuple[int, int, int] = default_color_text
     ):
         thefont = self.getfont(fontsize)
         sw, sh = draw.textsize(s, thefont)
@@ -143,3 +143,53 @@ class iScriptImageGenerator:
 
     def generate_all_images(self, screen_size: Tuple[int, int]) -> Iterator[Any]:
         raise NotImplementedError("method 'generate_all_images()' not implemented")
+
+
+import pygame
+import threading
+
+
+class iPygameScript(threading.Thread):
+
+    def __init__(self):
+        super().__init__()
+        # http://www.pygame.org/docs/ref/display.html#pygame.display.init
+        pygame.display.init()
+        flags = pygame.FULLSCREEN | pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF
+        self.screen = pygame.display.set_mode(self.size, flags, 32)
+        self.screen.fill((0, 0, 0))
+        pygame.font.init()
+        pygame.display.update()
+        self.stop_event = threading.Event()
+
+    def __del__(self):
+        pygame.display.quit()
+
+    @property
+    def size(self):
+        # return (int(pygame.display.Info().current_w * self.mult), int(pygame.display.Info().current_h * self.mult))
+        return pygame.display.list_modes()[0]
+
+    def run(self):
+        self.init()
+        while not self.quit_event():
+            self.step()
+            pygame.display.flip()
+
+    def init(self):
+        pass
+
+    def step(self):
+        raise NotImplementedError("method 'step()' not implemented")
+
+    def stop(self):
+        self.stop_event.set()
+
+    def quit_event(self) -> bool:
+        if self.stop_event.is_set():
+            return True
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.stop()
+                return True
+        return False

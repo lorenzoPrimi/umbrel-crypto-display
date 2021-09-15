@@ -2,3 +2,5 @@ python-dotenv
 Pillow
 requests
 psutil
+cachetools
+pygame

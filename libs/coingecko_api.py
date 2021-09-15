@@ -6,9 +6,9 @@ import requests as requests
 from cachetools import cached, TTLCache
 from requests.adapters import HTTPAdapter, Retry
 
-cache = TTLCache(ttl=60 * 10, maxsize=12800)
-
 __all__ = ['CoingeckoApi']
+
+cache = TTLCache(ttl=60 * 10, maxsize=12800)
 
 
 class CoingeckoApi:

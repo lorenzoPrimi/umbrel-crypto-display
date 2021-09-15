@@ -26,7 +26,7 @@ def run_script(
     script_class = getattr(script_module, className)
 
     if issubclass(script_class, iScriptImageGenerator):
-        script_object = script_class()
+        script_object: iScriptImageGenerator = script_class()
         i = 0
         for im in script_object.generate_all_images(screen_size):
             i += 1
@@ -38,6 +38,12 @@ def run_script(
                 output_file = os.path.join(output_folder, f"{module_name}-{i}.png")
                 im.save(output_file)
             # time.sleep(refresh_interval)
+
+    if issubclass(script_class, iPygameScript):
+        script_object: iPygameScript = script_class()
+        script_object.start()
+        time.sleep(refresh_interval)
+        script_object.stop()
 
 
 if __name__ == '__main__':
