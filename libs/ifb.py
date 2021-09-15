@@ -58,5 +58,5 @@ class iFB:
         assert os.access(self.fb_path, os.W_OK)
         assert self.stride == self.bits_per_pixel // 8 * self.size[0]
 
-    def show(self, im: Image):
+    def show(self, im: Image, timeout: int):
         pass

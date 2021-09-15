@@ -8,6 +8,7 @@ def find_file(path: str, filename: str):
         for fn in files:
             if fn == filename:
                 return os.path.join(root, fn)
+    raise FileNotFoundError(filename)
 
 
 def rel_path(relative_path: str) -> str:

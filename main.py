@@ -10,6 +10,8 @@ try:
 except ImportError as e:
     from .libs import *
 
+next_run = 0
+
 
 def run_script(
         module_name: str,
@@ -19,16 +21,23 @@ def run_script(
         output_folder: str,
         refresh_interval: int
 ):
+    global next_run
     script_module = __import__(f"scripts.{module_name}", fromlist=[f"scripts.{module_name}"])
-    script_object = getattr(script_module, className)()
-    i = 0
-    for im in script_object.generate_all_images(screen_size):
-        i += 1
-        fb.show(im)
-        if save_image_file:
-            output_file = os.path.join(output_folder, f"{module_name}-{i}.png")
-            im.save(output_file)
-        time.sleep(refresh_interval)
+    script_class = getattr(script_module, className)
+
+    if issubclass(script_class, iScriptImageGenerator):
+        script_object = script_class()
+        i = 0
+        for im in script_object.generate_all_images(screen_size):
+            i += 1
+            if next_run > time.time():
+                time.sleep(next_run - time.time())
+            next_run = time.time() + refresh_interval
+            fb.show(im, refresh_interval * 2)
+            if save_image_file:
+                output_file = os.path.join(output_folder, f"{module_name}-{i}.png")
+                im.save(output_file)
+            # time.sleep(refresh_interval)
 
 
 if __name__ == '__main__':
@@ -54,31 +63,32 @@ if __name__ == '__main__':
             screen_size = fb.size
 
         logging.info(f"script dir: '{scripts_dir}'")
-        scripts = config.scripts
-        if scripts:
-            for (module_name, className) in scripts:
-                try:
-                    run_script(
-                        module_name=module_name,
-                        className=className,
-                        fb=fb,
-                        save_image_file=config.save_image_file,
-                        output_folder=config.output_folder,
-                        refresh_interval=config.refresh_interval
-                    )
-                except Exception as e:
-                    logging.exception(e)
-        else:
-            for filepath in glob.glob(os.path.join(scripts_dir, "*.py")):
-                try:
-                    filename = os.path.basename(filepath)
-                    run_script(
-                        module_name=filename[:-3],
-                        className="Script",
-                        fb=fb,
-                        save_image_file=config.save_image_file,
-                        output_folder=config.output_folder,
-                        refresh_interval=config.refresh_interval
-                    )
-                except Exception as e:
-                    logging.exception(e)
+        while True:
+            scripts = config.scripts
+            if scripts:
+                for (module_name, className) in scripts:
+                    try:
+                        run_script(
+                            module_name=module_name,
+                            className=className,
+                            fb=fb,
+                            save_image_file=config.save_image_file,
+                            output_folder=config.output_folder,
+                            refresh_interval=config.refresh_interval
+                        )
+                    except Exception as e:
+                        logging.exception(e)
+            else:
+                for filepath in glob.glob(os.path.join(scripts_dir, "*.py")):
+                    try:
+                        filename = os.path.basename(filepath)
+                        run_script(
+                            module_name=filename[:-3],
+                            className="Script",
+                            fb=fb,
+                            save_image_file=config.save_image_file,
+                            output_folder=config.output_folder,
+                            refresh_interval=config.refresh_interval
+                        )
+                    except Exception as e:
+                        logging.exception(e)

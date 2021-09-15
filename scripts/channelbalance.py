@@ -1,35 +1,24 @@
+# original code from: https://github.com/vicariousdrama/nodeyez/blob/main/scripts/channelbalance.py
+
 import json
 import math
 import subprocess
-from datetime import datetime
 from typing import Tuple
 
 from PIL import Image, ImageDraw
-from PIL import ImageFont, ImageColor
+from PIL import ImageColor
 
 try:
     from libs import *
 except ImportError as e:
     from ..libs import *
 
-colorFFFFFF = ImageColor.getrgb("#ffffff")
 
-
-class Script:
+class Script(iScriptImageGenerator):
     colorBackground = ImageColor.getrgb("#000000")
     colorBarOutline = ImageColor.getrgb("#770044")
     colorBarFilled = ImageColor.getrgb("#aa3377")
     pubkey_alias = {'pubkey': 'alias'}
-
-    def getfont(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
-
-    def getfont_bold(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans-Bold.ttf"), size)
-
-    def getdateandtime(self):
-        now = datetime.utcnow()
-        return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def getnodeinfo(self, pubkey):
         cmd = f"lncli getnodeinfo --pub_key {pubkey} --include_channels 2>&1"
@@ -66,46 +55,6 @@ class Script:
             alias = self.getnodealias(nodeinfo)
             self.pubkey_alias[pubkey] = alias
         return alias
-
-    def drawcenteredtext(self, draw, s, fontsize, x, y, textcolor=colorFFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - (sw / 2), y - (sh / 2)), text=s, font=thefont, fill=textcolor)
-
-    def drawbottomlefttext(self, draw, s, fontsize, x, y, textcolor=colorFFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x, y - sh), text=s, font=thefont, fill=textcolor)
-
-    def drawbottomrighttext(self, draw, s, fontsize, x, y, textcolor=colorFFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - sw, y - sh), text=s, font=thefont, fill=textcolor)
-
-    def drawtoplefttext(self, draw, s, fontsize, x, y, textcolor=colorFFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x, y), text=s, font=thefont, fill=textcolor)
-
-    def drawtoprighttext(self, draw, s, fontsize, x, y, textcolor=colorFFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - sw, y), text=s, font=thefont, fill=textcolor)
 
     def createimage(self, channels, firstidx, lastidx, pagenum, pagesize, width=480, height=320):
         padding = 4

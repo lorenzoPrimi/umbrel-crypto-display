@@ -1,8 +1,12 @@
 from decimal import Decimal
 from typing import List, Optional, Dict
 
+import cachetools
 import requests as requests
+from cachetools import cached, TTLCache
 from requests.adapters import HTTPAdapter, Retry
+
+cache = TTLCache(ttl=60 * 10, maxsize=12800)
 
 __all__ = ['CoingeckoApi']
 
@@ -94,12 +98,14 @@ class CoingeckoApi:
                 **kwargs
             )
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_exchange_tickers(self, exchange):
         yield from self._request_paginated_field(
             uri=f'exchanges/{exchange}/tickers',
             field_name='tickers'
         )
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_coins(self, include_platform: bool = False):
         return self._request(
             'coins/list',
@@ -108,11 +114,13 @@ class CoingeckoApi:
             }
         )
 
+    @cached(cache)
     def get_coins_details(self):
         return self._request_paginated(
             'coins'
         )
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_coin_by_symbol(self,
                            symbol: str,
                            include_platform: bool = False,
@@ -129,6 +137,7 @@ class CoingeckoApi:
         except IndexError:
             return None
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_coin_by_name(self, name: str) -> Optional[List]:
         coins = self.get_coins()
         try:
@@ -165,11 +174,13 @@ class CoingeckoApi:
         p = self.get_simple_price(ids=[coin['id']], vs_currencies=[currency])
         return Decimal(p[coin['id']][currency])
 
+    @cached(cache)
     def supported_vs_currencies(self):
         return self._request(
             uri='simple/supported_vs_currencies'
         )
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_coin(self,
                  coin_id: str,
                  tickers: bool = True,
@@ -189,15 +200,18 @@ class CoingeckoApi:
             }
         )
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def asset_platforms(self):
         return self._request('asset_platforms')
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_platform(self, network_id: int):
         platforms = self.asset_platforms()
         for platform in platforms:
             if platform['chain_identifier'] == network_id:
                 return platform
 
+    @cached(cache, key=cachetools.keys.hashkey)
     def get_token_address(self, token_symbol, network_id: int = 137):
         chain_name = self.get_platform(network_id=network_id)['id']
         f = self.get_coin_by_symbol(token_symbol)

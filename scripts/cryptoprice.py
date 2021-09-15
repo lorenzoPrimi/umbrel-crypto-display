@@ -1,79 +1,24 @@
 import io
-import logging
-import os
-import time
-from datetime import datetime
 from decimal import Decimal
-from typing import cast, Optional, Tuple
+from typing import Tuple, Iterator
 
 import requests as requests
-from PIL import Image, ImageDraw, ImageColor, ImageFont
+from PIL import Image, ImageDraw
 
 try:
     from libs import *
 except ImportError as e:
     from ..libs import *
 
+coingecko = CoingeckoApi()
 
-class Script:
-    color_red = ImageColor.getrgb("#FF0000")
-    color_green = ImageColor.getrgb("#32CD30")
-    color_gold = ImageColor.getrgb("#FFD700")
-    color_D9D9D9 = ImageColor.getrgb("#D9D9D9")
-    color_404040 = ImageColor.getrgb("#404040")
-    color_40FF40 = ImageColor.getrgb("#40FF40")
-    color_000000 = ImageColor.getrgb("#000000")
-    color_FFFFFF = ImageColor.getrgb("#ffffff")
+
+class Script(iScriptImageGenerator):
 
     def __init__(self):
-        self.config = Config()
+        super().__init__()
         self.cryptos = self.config.cryptos
-        self.coingecko = CoingeckoApi()
         self.show_logo = self.config.get_bool("SHOW_LOGO", 'n')
-
-    def drawsatssquare(self, draw, dc, dr, spf, satw, bpx, bpy):
-        satsleft = spf
-        for y in range(10):
-            for x in range(10):
-                if satsleft > 0:
-                    tlx = (bpx + (dc * 11 * satw) + (x * satw))
-                    tly = (bpy + (dr * 11 * satw) + (y * satw))
-                    brx = tlx + satw - 2
-                    bry = tly + satw - 2
-                    draw.rectangle(xy=((tlx, tly), (brx, bry)), fill=self.color_40FF40)
-                satsleft = satsleft - 1
-
-    @staticmethod
-    def getdateandtime():
-        now = datetime.utcnow()
-        return now.strftime("%Y-%m-%d %H:%M:%S")
-
-    def getfont(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
-
-    def drawcenteredtext(self, draw, s, fontsize, x, y, textcolor=color_FFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - (sw / 2), y - (sh / 2)), text=s, font=thefont, fill=textcolor)
-
-    def drawbottomlefttext(self, draw, s, fontsize, x, y, textcolor=color_FFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x, y - sh), text=s, font=thefont, fill=textcolor)
-
-    def drawbottomrighttext(self, draw, s, fontsize, x, y, textcolor=color_FFFFFF):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - sw, y - sh), text=s, font=thefont, fill=textcolor)
 
     def _round_price(self, price: float) -> str:
         if price is None:
@@ -94,8 +39,8 @@ class Script:
         return s
 
     def getpriceinfo(self, ticker):
-        coin = self.coingecko.get_coin_by_symbol(ticker)
-        response = self.coingecko.get_coin(coin_id=coin['id'], market_data=True)
+        coin = coingecko.get_coin_by_symbol(ticker)
+        response = coingecko.get_coin(coin_id=coin['id'], market_data=True)
 
         return {
             'name': response['name'],
@@ -125,8 +70,8 @@ class Script:
         perc_color = self.color_green if pi['percentage'] >= 0 else self.color_red
         self.drawcenteredtext(draw, f"24h: {pi['percentage']:.2f} %", 20, int(width / 8 * 4), height - padtop,
                               perc_color)
-        self.drawcenteredtext(draw, f"High: {pi['low']}", 20, int(width / 8 * 7), height - padtop)
-        self.drawcenteredtext(draw, f"Low: {pi['high']}", 20, int(width / 8 * 1), height - padtop)
+        self.drawcenteredtext(draw, f"High: {pi['high']}", 20, int(width / 8 * 7), height - padtop)
+        self.drawcenteredtext(draw, f"Low: {pi['low']}", 20, int(width / 8 * 1), height - padtop)
         self.drawbottomlefttext(draw, "Market data by coingecko", 16, 0, height, self.color_40FF40)
         self.drawbottomrighttext(draw, f"as of {self.getdateandtime()}", 12, width, height)
         return im
@@ -134,4 +79,3 @@ class Script:
     def generate_all_images(self, screen_size: Tuple[int, int]):
         for ticker in self.cryptos:
             yield self.createimage(ticker, screen_size)
-

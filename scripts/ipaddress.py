@@ -1,50 +1,16 @@
+# original code from: https://github.com/vicariousdrama/nodeyez/blob/main/scripts/ipaddress.py
 import subprocess
-from datetime import datetime
 from typing import Tuple
 
-from PIL import Image, ImageDraw, ImageFont, ImageColor
+from PIL import Image, ImageDraw
 
 try:
     from libs import *
 except ImportError as e:
     from ..libs import *
 
-colorFFFFFF = ImageColor.getrgb("#ffffff")
 
-
-class Script:
-    colorgrid = ImageColor.getrgb("#404040")
-    colorahead = ImageColor.getrgb("#FFFF40")
-    colorbehind = ImageColor.getrgb("#FF0000")
-    colormined = ImageColor.getrgb("#40FF40")
-    color000000 = ImageColor.getrgb("#000000")
-    colorFFFFFF = colorFFFFFF
-
-    def getdateandtime(self):
-        now = datetime.utcnow()
-        return now.strftime("%Y-%m-%d %H:%M:%S")
-
-    def getfont(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
-
-    def getfont_bold(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans-Bold.ttf"), size)
-
-    def drawcenteredtext(self, draw, s, fontsize, x, y):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - (sw / 2), y - (sh / 2)), text=s, font=thefont, fill=colorFFFFFF)
-
-    def drawbottomrighttext(self, draw, s, fontsize, x, y):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - sw, y - sh), text=s, font=thefont, fill=colorFFFFFF)
+class Script(iScriptImageGenerator):
 
     def getcurrentip(self):
         cmd = "hostname -I"

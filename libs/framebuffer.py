@@ -1,5 +1,7 @@
 import logging
 import os
+import sys
+from fcntl import ioctl
 
 from PIL import Image
 
@@ -30,7 +32,7 @@ class FrameBuffer(iFB):
         logging.warning("frame buffer using raw output")
         return image.tobytes()
 
-    def show(self, image: Image):
+    def show(self, image: Image, timeout: int):
         assert image.size <= self.size
         target = Image.new(mode="RGB", size=self.size)
         target.paste(image, ((target.size[0] - image.size[0]) // 2,
@@ -52,21 +54,16 @@ class FrameBuffer(iFB):
             fp.write("\x1b[?25h")
 
     def fork(self):
-        import os
-        import sys
         pid = os.fork()
         if pid != 0:
             sys.exit()
         os.setsid()
 
     def activate_tty(self):
-        import os
-        os.chown(self.vt_path, os.getuid(), os.getgid())
+        # os.chown(self.vt_path, os.getuid(), os.getgid())
         self._vt_fp = self._activate_tty(self._vt)
 
     def _activate_tty(self, vtno: int) -> int:
-        from fcntl import ioctl
-        import os
         fp = os.open(self.vt_path, os.O_RDWR)
         ioctl(fp, VT_ACTIVATE, vtno)
         ioctl(fp, VT_WAITACTIVE, vtno)

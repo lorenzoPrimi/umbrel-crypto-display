@@ -1,9 +1,10 @@
+# original code from: https://github.com/vicariousdrama/nodeyez/blob/main/scripts/blockheight.py
+
 import json
 import subprocess
-from datetime import datetime
 from typing import Tuple
 
-from PIL import Image, ImageDraw, ImageFont, ImageColor
+from PIL import ImageDraw, Image
 
 try:
     from libs import *
@@ -11,30 +12,7 @@ except ImportError as e:
     from ..libs import *
 
 
-class Script:
-    colorFFFFFF = ImageColor.getrgb("#ffffff")
-
-    def getfont(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
-
-    def getfont_bold(self, size: int):
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans-Bold.ttf"), size)
-
-    def drawcenteredtext(self, draw, s, fontsize, x, y):
-        thefont = self.getfont_bold(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - (sw / 2), y - (sh / 2)), text=s, font=thefont, fill=self.colorFFFFFF)
-
-    def drawbottomrighttext(self, draw, s, fontsize, x, y):
-        thefont = self.getfont(fontsize)
-        sw, sh = draw.textsize(s, thefont)
-        ox, oy = thefont.getoffset(s)
-        sw += ox
-        sh += oy
-        draw.text(xy=(x - sw, y - sh), text=s, font=thefont, fill=self.colorFFFFFF)
+class Script(iScriptImageGenerator):
 
     def getcurrentblock(self):
         cmd = "bitcoin-cli getblockchaininfo"
@@ -46,10 +24,6 @@ class Script:
         except subprocess.CalledProcessError as e:
             print(e)
             return 1
-
-    def getdateandtime(self):
-        now = datetime.utcnow()
-        return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def generate_all_images(self, screen_size: Tuple[int, int]):
         width, height = screen_size

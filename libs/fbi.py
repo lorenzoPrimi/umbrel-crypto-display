@@ -1,12 +1,14 @@
 import glob
+import logging
 import os
 import signal
 import tempfile
 import time
 from typing import Optional
-from .ifb import iFB
 
 import psutil
+
+from .ifb import iFB
 
 __all__ = ['Fbi']
 
@@ -21,40 +23,42 @@ class Fbi(iFB):
         self._timeout = timeout
 
     def start(self):
-        os.system(
-            " ".join([
+        cmd = " ".join([
+            "fbi",
+            "--vt", f"{self._vt}",
+            "--autozoom",
+            "--timeout", f"{self._timeout}",
+            "--device", self.fb_path,
+            "--noreadahead",
+            "--cachemem", "0",
+            "--noverbose",
+            "--norandom",
+            f"{self._folder}/*.png"
+        ])
+        logging.info(cmd)
+        os.system(cmd)
+
+    def show(self, im: Image, timeout: int):
+        with tempfile.NamedTemporaryFile(suffix=".png") as fp:
+            im.save(fp.file, format="PNG")
+            # self.stop()
+            fp.flush()
+            os.chmod(fp.name, 0o777)
+            cmd = " ".join([
                 "fbi",
                 "--vt", f"{self._vt}",
                 "--autozoom",
-                "--timeout", f"{self._timeout}",
                 "--device", self.fb_path,
                 "--noreadahead",
                 "--cachemem", "0",
                 "--noverbose",
-                "--norandom",
-                f"{self._folder}/*.png"
+                "-1",
+                "-timeout", f"{timeout}",
+                fp.name
             ])
-        )
-
-    def show(self, im: Image):
-        with tempfile.NamedTemporaryFile(suffix=".png") as fp:
-            im.save(fp.file, format="PNG")
-            self.stop()
-            fp.flush()
-            os.chmod(fp.name, 0o777)
-            os.system(
-                " ".join([
-                    "fbi",
-                    "--vt", f"{self._vt}",
-                    "--autozoom",
-                    "--device", self.fb_path,
-                    "--noreadahead",
-                    "--cachemem", "0",
-                    "--noverbose",
-                    fp.name
-                ])
-            )
-            time.sleep(1)
+            logging.info(cmd); print(cmd)
+            os.system(cmd)
+            time.sleep(0.1)
 
     def stop(self):
         pid = self.get_pid()
