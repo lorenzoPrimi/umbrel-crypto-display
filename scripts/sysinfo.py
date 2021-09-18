@@ -1,5 +1,5 @@
 import math
-import subprocess
+import os
 from typing import Tuple
 
 from PIL import ImageDraw, Image
@@ -12,134 +12,240 @@ except ImportError as e:
 
 class Script(iScriptImageGenerator):
 
+    def _draw_text(self, draw, tt, x, y, w, h, font_size=24):
+        font = self.getfont(font_size)
+        ttw, tth = draw.textsize(tt, font)
+        ox, oy = font.getoffset(tt)
+        ttw += ox
+        tth += oy
+        draw.text(
+            xy=(
+                x + (w / 2) - (ttw / 2),
+                y + ((h / 8) * 1) - (tth / 2)
+            ),
+            text=tt,
+            font=font,
+            fill=self.color("#FFFFFF"),
+            stroke_width=1
+        )
+
+    def drawicon_thermometer(self, draw: ImageDraw, x, y, w, h):
+        v = self.gettemp()
+        tw = w / 3
+        draw.ellipse(
+            xy=(
+                x, y + ((h - y) / 4 * 3),
+                tw, h
+            ),
+            fill=self.color("#C0C0C0"),
+            outline=None,
+            width=1
+        )
+        draw.ellipse(
+            xy=(
+                x + ((tw - x) / 4 * 1),
+                y,
+                x + ((tw - x) / 4 * 3),
+                y + ((h - y) / 4 * 1)
+            ),
+            fill=self.color("#C0C0C0"),
+            outline=None,
+            width=1
+        )
+        draw.rectangle(
+            xy=(
+                x + ((tw - x) / 4 * 1),
+                y + ((h - y) / 8 * 1),
+                x + ((tw - x) / 4 * 3),
+                y + ((h - y) / 8 * 7)
+            ),
+            fill=self.color("#C0C0C0"),
+            outline=None,
+            width=1
+        )
+        draw.ellipse(
+            xy=(
+                x + 2,
+                y + 2 + ((h - y) / 4 * 3),
+                tw - 2,
+                h - 2
+            ),
+            fill=self.color("#000000"),
+            outline=None,
+            width=1
+        )
+        draw.ellipse(
+            xy=(
+                x + 2 + ((tw - x) / 4 * 1),
+                y + 2, x - 2 + ((tw - x) / 4 * 3),
+                y - 2 + ((h - y) / 4 * 1)
+            ),
+            fill=self.color("#000000"),
+            outline=None,
+            width=1
+        )
+        draw.rectangle(
+            xy=(
+                x + 2 + ((tw - x) / 4 * 1),
+                y + 2 + ((h - y) / 8 * 1),
+                x - 2 + ((tw - x) / 4 * 3),
+                y - 2 + ((h - y) / 8 * 7)
+            ),
+            fill=self.color("#000000"),
+            outline=None,
+            width=1
+        )
+        barcolor = self.color("#C0FFC0")
+        barpos = 3
+        if int(v) > 55:
+            barcolor = self.color("#FFFF00")
+            barpos = 2
+        if int(v) > 65:
+            barcolor = self.color("#FF0000")
+            barpos = 1
+        draw.ellipse(
+            xy=(
+                x + 4,
+                y + 4 + (h / 4 * 3),
+                tw - 4,
+                h - 4
+            ),
+            fill=barcolor,
+            outline=None,
+            width=1
+        )
+        draw.rectangle(
+            xy=(
+                x + 4 + ((tw - x) / 4 * 1),
+                y + 4 + (h / 8 * barpos),
+                x - 4 + ((tw - x) / 4 * 3),
+                y - 4 + (h / 8 * 7)
+            ),
+            fill=barcolor,
+            outline=None,
+            width=1
+        )
+        for j in range(8):
+            draw.rectangle(
+                xy=(
+                    x + 6 + ((tw - x) / 4 * 3),
+                    y + (h / 4) + ((h / 2 / 8) * j),
+                    x + 26 + ((tw - x) / 4 * 3),
+                    y + (h / 4) + ((h / 2 / 8) * j)
+                ),
+                fill=self.color("#C0C0C0"),
+                outline=self.color("#C0C0C0"),
+                width=3
+            )
+        tt = f"{v}°"
+        font = self.getfont(48)
+        ttw, tth = draw.textsize(tt, font)
+        ox, oy = font.getoffset(tt)
+        ttw += ox
+        tth += oy
+        draw.text(
+            (x + w - ttw, y + (h / 2)),
+            tt,
+            font=font,
+            fill=self.color("#FFFFFF"),
+            stroke_width=1
+        )
+        tt = "Temp"
+        self._draw_text(draw, tt, x, y, w, h)
+
+    def drawicon_piestorage(self, draw: ImageDraw, x: int, y: int, w: int, h: int, volume):
+        try:
+            data = self.getdrivefree(volume)
+        except:
+            self.drawicon(draw, "pieerror", x, y, w, h)
+            return
+
+        if hasattr(data, "percent"):
+            pct = int(data.percent)
+        else:
+            pct = int(data.used / data.total * 100)
+
+        gbf = data.free // (2 ** 30)
+        pad = 30
+        ox = 0
+        oy = 0
+        if pct == 50:
+            ox = 0
+        if pct > 50:
+            ox = ox * -1
+        sa = 0
+        ea = sa + math.floor(pct * 3.6)
+        slicecolor = self.color("#C0FFC0")
+        textcolor = self.color("#000000")
+        if pct > 80:
+            slicecolor = self.color("#FFFF00")
+            textcolor = self.color("#000000")
+        if pct > 90:
+            slicecolor = self.color("#FF0000")
+            textcolor = self.color("#FFFFFF")
+        draw.pieslice(xy=(x + pad + ox, y + pad + oy, x + w + ox - pad, y + h + oy - pad), start=sa, end=ea,
+                      fill=slicecolor, outline=self.color("#C0C0C0"), width=2)
+        tt = "used"
+        ttw, tth = draw.textsize(tt, self.getfont(16))
+        ox, oy = self.getfont(16).getoffset(tt)
+        ttw += ox
+        tth += oy
+        draw.text(xy=(x + (w / 2), y + (h / 2) + (tth / 2)), text=tt, font=self.getfont(16), fill=textcolor)
+        ox = ox * -1
+        oy = oy * -1
+        sa = ea
+        ea = 360
+        textcolor = self.color("#FFFFFF")
+        draw.pieslice(xy=(x + pad + ox, y + pad + oy, x + w + ox - pad, y + h + oy - pad), start=sa, end=ea,
+                      fill=self.color("#000000"), outline=self.color("#C0C0C0"), width=2)
+        tt = "free"
+        ttw, tth = draw.textsize(tt, self.getfont(16))
+        ox, oy = self.getfont(16).getoffset(tt)
+        ttw += ox
+        tth += oy
+        draw.text(xy=(x + (w / 2), y + (h / 2) - (tth / 2) + oy - pad), text=tt, font=self.getfont(16),
+                  fill=textcolor)
+        tt = f"{gbf}Gb free"
+        ttw, tth = draw.textsize(tt, self.getfont(20))
+        ox, oy = self.getfont(20).getoffset(tt)
+        ttw += ox
+        tth += oy
+        draw.text(xy=(x + (w / 2) - (ttw / 2), y + h - (tth / 2) - 10), text=tt, font=self.getfont(20),
+                  fill=self.color("#FFFFFF"))
+
     def drawicon(self, draw: ImageDraw, icon, x, y, w, h, v=None):
         if icon == "thermometer":
-            tw = w / 3
-            draw.ellipse(xy=(x, y + ((h - y) / 4 * 3), tw, h), fill=self.color("#C0C0C0"), outline=None, width=1)
-            draw.ellipse(xy=(x + ((tw - x) / 4 * 1), y, x + ((tw - x) / 4 * 3), y + ((h - y) / 4 * 1)),
-                         fill=self.color("#C0C0C0"), outline=None, width=1)
-            draw.rectangle(
-                xy=(x + ((tw - x) / 4 * 1), y + ((h - y) / 8 * 1), x + ((tw - x) / 4 * 3), y + ((h - y) / 8 * 7)),
-                fill=self.color("#C0C0C0"), outline=None, width=1)
-            draw.ellipse(xy=(x + 2, y + 2 + ((h - y) / 4 * 3), tw - 2, h - 2), fill=self.color("#000000"), outline=None,
-                         width=1)
-            draw.ellipse(xy=(x + 2 + ((tw - x) / 4 * 1), y + 2, x - 2 + ((tw - x) / 4 * 3), y - 2 + ((h - y) / 4 * 1)),
-                         fill=self.color("#000000"), outline=None, width=1)
-            draw.rectangle(xy=(x + 2 + ((tw - x) / 4 * 1), y + 2 + ((h - y) / 8 * 1), x - 2 + ((tw - x) / 4 * 3),
-                               y - 2 + ((h - y) / 8 * 7)), fill=self.color("#000000"), outline=None, width=1)
-            barcolor = self.color("#C0FFC0")
-            barpos = 3
-            if int(v) > 55:
-                barcolor = self.color("#FFFF00")
-                barpos = 2
-            if int(v) > 65:
-                barcolor = self.color("#FF0000")
-                barpos = 1
-            draw.ellipse(xy=(x + 4, y + 4 + (h / 4 * 3), tw - 4, h - 4), fill=barcolor, outline=None, width=1)
-            draw.rectangle(xy=(
-                x + 4 + ((tw - x) / 4 * 1), y + 4 + (h / 8 * barpos), x - 4 + ((tw - x) / 4 * 3), y - 4 + (h / 8 * 7)),
-                fill=barcolor, outline=None, width=1)
-            for j in range(8):
-                draw.rectangle(xy=(
-                    x + 6 + ((tw - x) / 4 * 3), y + (h / 4) + ((h / 2 / 8) * j), x + 26 + ((tw - x) / 4 * 3),
-                    y + (h / 4) + ((h / 2 / 8) * j)), fill=self.color("#C0C0C0"), outline=self.color("#C0C0C0"), width=3)
-            tt = v + "°"
-            ttw, tth = draw.textsize(tt, self.getfont(48))
-            ox, oy = self.getfont(48).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text((x + w - ttw, y + (h / 2)), tt, font=self.getfont(48), fill=self.color("#FFFFFF"), stroke_width=1)
-            tt = "Temp"
-            ttw, tth = draw.textsize(tt, self.getfont(24))
-            ox, oy = self.getfont(24).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2) - (ttw / 2), y + ((h / 8) * 1) - (tth / 2)), text=tt, font=self.getfont(24),
-                      fill=self.color("#FFFFFF"), stroke_width=1)
-        if icon == "piestorage":
-            if list(v.split())[5] == "error":
-                self.drawicon(draw, "pieerror", x, y, w, h)
-                return
-            pct = int(list(v.split())[4].replace("%", ""))
-            gbf = list(v.split())[3]
-            pad = 30
-            ox = 3
-            oy = 3
-            if pct == 50:
-                ox = 0
-            if pct > 50:
-                ox = ox * -1
-            sa = 0
-            ea = sa + math.floor(pct * 3.6)
-            slicecolor = self.color("#C0FFC0")
-            textcolor = self.color("#000000")
-            if pct > 80:
-                slicecolor = self.color("#FFFF00")
-                textcolor = self.color("#000000")
-            if pct > 90:
-                slicecolor = self.color("#FF0000")
-                textcolor = self.color("#FFFFFF")
-            draw.pieslice(xy=(x + pad + ox, y + pad + oy, x + w + ox - pad, y + h + oy - pad), start=sa, end=ea,
-                          fill=slicecolor, outline=self.color("#C0C0C0"), width=2)
-            tt = "used"
-            ttw, tth = draw.textsize(tt, self.getfont(16))
-            ox, oy = self.getfont(16).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2), y + (h / 2) + (tth / 2)), text=tt, font=self.getfont(16), fill=textcolor)
-            ox = ox * -1
-            oy = oy * -1
-            sa = ea
-            ea = 360
-            textcolor = self.color("#FFFFFF")
-            draw.pieslice(xy=(x + pad + ox, y + pad + oy, x + w + ox - pad, y + h + oy - pad), start=sa, end=ea,
-                          fill=self.color("#000000"), outline=self.color("#C0C0C0"), width=2)
-            tt = "free"
-            ttw, tth = draw.textsize(tt, self.getfont(16))
-            ox, oy = self.getfont(16).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2), y + (h / 2) - (tth / 2) + oy - pad), text=tt, font=self.getfont(16),
-                      fill=textcolor)
-            tt = gbf + " free"
-            ttw, tth = draw.textsize(tt, self.getfont(20))
-            ox, oy = self.getfont(20).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2) - (ttw / 2), y + h - (tth / 2) - 10), text=tt, font=self.getfont(20),
-                      fill=self.color("#FFFFFF"))
-        if icon == "sdcard":
-            self.drawicon(draw, "piestorage", x, y, w, h, v)
-            tt = "/dev/root"
-            ttw, tth = draw.textsize(tt, self.getfont(24))
-            ox, oy = self.getfont(24).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + ((w / 2) - (ttw / 2)) + 1, y + (tth / 2) + 1 - 10), text=tt, font=self.getfont(24),
-                      fill=self.color("#000000"), stroke_width=3)
-            draw.text(xy=(x + ((w / 2) - (ttw / 2)), y + (tth / 2) - 10), text=tt, font=self.getfont(24),
-                      fill=self.color("#FFFFFF"),
-                      stroke_width=1)
+            self.drawicon_thermometer(draw, x, y, w, h)
         if icon == "hdd":
-            self.drawicon(draw, "piestorage", x, y, w, h, v)
-            tt = "/dev/sda1"
-            ttw, tth = draw.textsize(tt, self.getfont(24))
-            ox, oy = self.getfont(24).getoffset(tt)
+            self.drawicon_piestorage(draw, x, y, w, h, v)
+            font = self.getfont(10)
+            ttw, tth = draw.textsize(v, font)
+            ox, oy = font.getoffset(v)
             ttw += ox
             tth += oy
-            draw.text(xy=(x + ((w / 2) - (ttw / 2)) + 1, y + (tth / 2) + 1 - 10), text=tt, font=self.getfont(24),
-                      fill=self.color("#000000"), stroke_width=3)
-            draw.text(xy=(x + ((w / 2) - (ttw / 2)), y + (tth / 2) - 10), text=tt, font=self.getfont(24),
-                      fill=self.color("#FFFFFF"),
-                      stroke_width=1)
+            draw.text(
+                xy=(
+                    x + ((w / 2) - (ttw / 2)),
+                    y + (tth / 2)  # + 1 - 10
+                ),
+                text=v,
+                font=font,
+                fill=self.color("#000000"),
+                stroke_width=3
+            )
+            draw.text(
+                xy=(
+                    x + ((w / 2) - (ttw / 2)),
+                    y + (tth / 2) - 10
+                ),
+                text=v,
+                font=self.getfont(24),
+                fill=self.color("#FFFFFF"),
+                stroke_width=1
+            )
         if icon == "cpuload":
             tt = "CPU Load"
-            ttw, tth = draw.textsize(tt, self.getfont(24))
-            ox, oy = self.getfont(24).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2) - (ttw / 2), y + ((h / 8) * 1) - (tth / 2)), text=tt, font=self.getfont(24),
-                      fill=self.color("#FFFFFF"), stroke_width=1)
+            self._draw_text(draw, tt, x, y, w, h)
             tt = "1 min"
             ttw, tth = draw.textsize(tt, self.getfont(16))
             ox, oy = self.getfont(16).getoffset(tt)
@@ -190,12 +296,7 @@ class Script(iScriptImageGenerator):
             draw.arc(xy=(x + pad + 2, y + (pad * 2) + 2, x + w - pad - 2, y + h - 2), start=120, end=ea, fill=arccolor,
                      width=16)
             tt = l
-            ttw, tth = draw.textsize(tt, self.getfont(24))
-            ox, oy = self.getfont(24).getoffset(tt)
-            ttw += ox
-            tth += oy
-            draw.text(xy=(x + (w / 2) - (ttw / 2), y + ((h / 8) * 1) - (tth / 2)), text=tt, font=self.getfont(24),
-                      fill=self.color("#FFFFFF"), stroke_width=1)
+            self._draw_text(draw, tt, x, y, w, h)
             tt = p + "%"
             ttw, tth = draw.textsize(tt, self.getfont(20))
             ox, oy = self.getfont(20).getoffset(tt)
@@ -219,54 +320,45 @@ class Script(iScriptImageGenerator):
         bh = height / 2
         im = Image.new(mode="RGB", size=(width, height))
         draw = ImageDraw.Draw(im)
-        self.drawicon(draw, "thermometer", 5, 5, bw - 10, bh - 10, v=str(self.gettemp()))
-        self.drawicon(draw, "sdcard", 5 + bw, 5, bw - 10, bh - 10, v=str(self.getdrivefree("/dev/root")))
-        self.drawicon(draw, "hdd", 5 + bw + bw, 5, bw - 10, bh - 10, v=str(self.getdrivefree("/dev/sda1")))
+        self.drawicon(draw, "thermometer", 5, 5, bw - 10, bh - 10)
+        self.drawicon(draw, "hdd", 5 + bw, 5, bw - 10, bh - 10, v="/")
+        self.drawicon(draw, "hdd", 5 + bw + bw, 5, bw - 10, bh - 10, v="/dev/sda1")
         self.drawicon(draw, "cpuload", 5, bh + 5, bw, bh - 10, v=str(self.getloadavg()))
         self.drawicon(draw, "memory", 5 + bw, bh + 5, bw, bh - 10, v=str(self.getmemusage("Mem", "RAM")))
         self.drawicon(draw, "memory", 5 + bw + bw, bh + 5, bw, bh - 10, v=str(self.getmemusage("Swap", "Swap")))
         self.drawicon(draw, "datetime", 0, 0, width, height)
         return im
 
-    def gettemp(self):
-        cmd = "cat /sys/class/thermal/thermal_zone0/temp"
-        try:
-            cmdoutput = subprocess.check_output(cmd, shell=True).decode("utf-8")
-            temp = int(cmdoutput)
-            return math.floor(temp / 1000)
-        except subprocess.CalledProcessError as e:
+    def gettemp(self) -> int:
+        if not os.path.exists("/sys/class/thermal/thermal_zone0/temp"):
             return -1
+        temp = int(read_file_line("/sys/class/thermal/thermal_zone0/temp"))
+        return math.floor(temp / 1000)
 
     def getdrivefree(self, path):
-        cmd = "df -h | grep " + path
-        try:
-            return subprocess.check_output(cmd, shell=True).decode("utf-8")
-        except subprocess.CalledProcessError as e:
-            return path + " 0G 0G 0G 1% error"
+        import shutil
+        return shutil.disk_usage(path)
 
-    def getloadavg(self):
-        cmd = "cat /proc/loadavg"
+    def getloadavg(self) -> str:
         try:
-            return subprocess.check_output(cmd, shell=True).decode("utf-8")
-        except subprocess.CalledProcessError as e:
-            return "1.00 1.00 1.00 9 99999"
+            # return " ".join([str(v) for v in os.getloadavg()])
+            return read_file_line("/proc/loadavg")
+        except:
+            return "0.00 0.00 0.00 9 99999"
 
-    def getprocessorcount(self):
-        cmd = "cat /proc/cpuinfo | grep processor | wc -l"
-        try:
-            return int(subprocess.check_output(cmd, shell=True).decode("utf-8"))
-        except subprocess.CalledProcessError as e:
-            return 4
+    def getprocessorcount(self) -> int:
+        import multiprocessing
+        return multiprocessing.cpu_count()
 
-    def getmemusage(self, memtype, label):
-        cmd = "free --mebi | grep " + memtype
+    def getmemusage(self, memtype, label) -> str:
+        import psutil
         try:
-            cmdoutput = subprocess.check_output(cmd, shell=True).decode("utf-8")
-            t = list(cmdoutput.split())[1]
-            u = list(cmdoutput.split())[2]
-            v = int((float(u) / float(t)) * 100)
-            return label + " " + str(v)
-        except subprocess.CalledProcessError as e:
+            if memtype == "Mem":
+                return f"{label} {int(psutil.virtual_memory().percent)}"
+            if memtype == "Swap":
+                return f"{label} {int(psutil.swap_memory().percent)}"
+            return label + " ?"
+        except:
             return label + " ?"
 
     def generate_all_images(self, screen_size: Tuple[int, int]):

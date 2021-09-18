@@ -7,12 +7,11 @@ import time
 from typing import Optional
 
 import psutil
+from PIL import Image
 
 from .ifb import iFB
 
 __all__ = ['Fbi']
-
-from PIL import Image
 
 
 class Fbi(iFB):

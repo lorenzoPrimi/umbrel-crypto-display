@@ -1,6 +1,6 @@
 import os
 
-__all__ = ['find_file', 'rel_path']
+__all__ = ['find_file', 'rel_path', 'read_file_line']
 
 
 def find_file(path: str, filename: str):
@@ -18,3 +18,9 @@ def rel_path(relative_path: str) -> str:
     bdir = dirname(__file__)
     joinpath = join(bdir, relative_path)
     return abspath(joinpath)
+
+
+def read_file_line(filepath: str) -> str:
+    with open(filepath, "r") as fd:
+        return fd.readline().rstrip("\n")
+
