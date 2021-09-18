@@ -41,8 +41,9 @@ def run_script(
         script_object: iPygameScript = script_class()
         try:
             script_object.start()
-            time.sleep(refresh_interval)
-            script_object.stop()
+            if refresh_interval > 0:
+                time.sleep(refresh_interval)
+                script_object.stop()
             script_object.join()
         finally:
             script_object.quit()

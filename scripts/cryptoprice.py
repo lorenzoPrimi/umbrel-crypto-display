@@ -61,18 +61,18 @@ class Script(iScriptImageGenerator):
         padtop = 40
         im = Image.new(mode="RGB", size=(width, height))
         draw = ImageDraw.Draw(im)
-        self.drawcenteredtext(draw, pi['last'], 128, int(width / 2), int(height / 2), self.color_D9D9D9)
-        self.drawcenteredtext(draw, pi['last'], 128, int(width / 2) - 2, int(height / 2) - 2, self.color_FFFFFF)
+        self.drawcenteredtext(draw, pi['last'], 128, int(width / 2), int(height / 2), self.color("#D9D9D9"))
+        self.drawcenteredtext(draw, pi['last'], 128, int(width / 2) - 2, int(height / 2) - 2, self.color("#FFFFFF"))
         self.drawcenteredtext(draw, f"{pi['name']} price:", 24, int(width / 2), int(padtop))
         if self.show_logo:
             logo_image: Image = pi['image']
             im.paste(logo_image, (int(width * 0.05), int((padtop - logo_image.size[1] / 2) / 2)))
-        perc_color = self.color_green if pi['percentage'] >= 0 else self.color_red
+        perc_color = self.color("green") if pi['percentage'] >= 0 else self.color("red")
         self.drawcenteredtext(draw, f"24h: {pi['percentage']:.2f} %", 20, int(width / 8 * 4), height - padtop,
                               perc_color)
         self.drawcenteredtext(draw, f"High: {pi['high']}", 20, int(width / 8 * 7), height - padtop)
         self.drawcenteredtext(draw, f"Low: {pi['low']}", 20, int(width / 8 * 1), height - padtop)
-        self.drawbottomlefttext(draw, "Market data by coingecko", 16, 0, height, self.color_40FF40)
+        self.drawbottomlefttext(draw, "Market data by coingecko", 16, 0, height, self.color("#40FF40"))
         self.drawbottomrighttext(draw, f"as of {self.getdateandtime()}", 12, width, height)
         return im
 

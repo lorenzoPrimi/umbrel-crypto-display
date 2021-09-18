@@ -38,13 +38,13 @@ class Script(iScriptImageGenerator):
         feemedian = blockinfo["medianFee"]
         depth = int(math.floor(w * .14))
         pad = 2
-        blockcolor = self.color_40C040
+        blockcolor = self.color("#40C040")
         draw.polygon(xy=((x + pad, y + pad), (x + pad, y + h - pad - depth), (x + pad + depth, y + h - pad),
-                         (x + pad + depth, y + pad + depth)), outline=self.color_202020, fill=self.color_404040)
+                         (x + pad + depth, y + pad + depth)), outline=self.color("#202020"), fill=self.color("#404040"))
         draw.polygon(xy=((x + pad, y + pad), (x + pad + depth, y + pad + depth), (x + w - pad, y + pad + depth),
-                         (x + w - pad - depth, y + pad)), outline=self.color_202020, fill=self.color_606060)
+                         (x + w - pad - depth, y + pad)), outline=self.color("#202020"), fill=self.color("#606060"))
         draw.polygon(xy=((x + pad + depth, y + pad + depth), (x + w - pad, y + pad + depth), (x + w - pad, y + h - pad),
-                         (x + pad + depth, y + h - pad)), outline=self.color_202020, fill=blockcolor)
+                         (x + pad + depth, y + h - pad)), outline=self.color("#202020"), fill=blockcolor)
         centerx = x + depth + (int(math.floor((w - depth) / 2)))
         descriptor = "~" + str(int(math.floor(float(feemedian)))) + " sat/vB"
         self.drawcenteredtext(draw, descriptor, 14, centerx, y + pad + (depth * 2))

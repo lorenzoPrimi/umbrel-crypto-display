@@ -1,6 +1,12 @@
 import os
 from datetime import datetime
-from typing import Tuple, Iterator, Any, Optional, List, Literal
+
+from typing import Tuple, Iterator, Any, Optional, List
+
+try:
+    from typing import Literal
+except:
+    from typing_extensions import Literal
 
 from PIL import ImageColor, ImageFont, ImageDraw
 
@@ -11,19 +17,18 @@ __all__ = ['iScriptImageGenerator', 'iPygameScript']
 
 default_color_text = ImageColor.getrgb("#ffffff")
 
+_font_cache = {}
+_font_bold_cache = {}
+
+_color_cache = {}
+
 
 class iScriptImageGenerator:
-    color_red = ImageColor.getrgb("#FF0000")
-    color_green = ImageColor.getrgb("#32CD30")
-    color_gold = ImageColor.getrgb("#FFD700")
-    color_D9D9D9 = ImageColor.getrgb("#D9D9D9")
-    color_404040 = ImageColor.getrgb("#404040")
-    color_40C040 = ImageColor.getrgb("#40C040")
-    color_40FF40 = ImageColor.getrgb("#40FF40")
-    color_000000 = ImageColor.getrgb("#000000")
-    color_FFFFFF = ImageColor.getrgb("#ffffff")
-    color_202020 = ImageColor.getrgb("#202020")
-    color_606060 = ImageColor.getrgb("#606060")
+    _color_map = {
+        "red": "#FF0000",
+        "green": "#32CD30",
+        "gold": "#FFD700"
+    }
 
     def __init__(self):
         self.config = Config()
@@ -36,10 +41,24 @@ class iScriptImageGenerator:
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def getfont(self, size: int) -> ImageFont:
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
+        global _font_cache
+        if size not in _font_cache:
+            _font_cache[size] = ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans.ttf"), size)
+        return _font_cache[size]
 
     def getfont_bold(self, size: int) -> ImageFont:
-        return ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans-Bold.ttf"), size)
+        global _font_bold_cache
+        if size not in _font_bold_cache:
+            _font_bold_cache[size] = ImageFont.truetype(find_file("/usr/share/fonts", "DejaVuSans-Bold.ttf"), size)
+        return _font_bold_cache[size]
+
+    def color(self, hexcolor):
+        global _color_cache
+        if hexcolor in self._color_map:
+            hexcolor = self._color_map[hexcolor]
+        if hexcolor not in _color_cache:
+            _color_cache[hexcolor] = ImageColor.getrgb(hexcolor)
+        return _color_cache[hexcolor]
 
     def drawcenteredtext(
             self,
@@ -161,7 +180,7 @@ class iPygameScript(threading.Thread):
         super().__init__()
         self._display_init(drivers)
         flags = pygame.FULLSCREEN | pygame.NOFRAME | pygame.HWSURFACE | pygame.DOUBLEBUF
-        self.screen = pygame.display.set_mode(self.size, flags, 32)
+        self.screen: pygame.Surface = pygame.display.set_mode(self.size, flags, 32)
         self.screen.fill((0, 0, 0))
         pygame.font.init()
         pygame.display.update()
@@ -216,3 +235,7 @@ class iPygameScript(threading.Thread):
     def quit(self):
         pygame.display.quit()
         pygame.quit()
+        self.on_stop()
+
+    def on_stop(self):
+        pass

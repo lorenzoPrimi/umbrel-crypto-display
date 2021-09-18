@@ -56,9 +56,9 @@ class Fbi(iFB):
                 "-timeout", f"{timeout}",
                 fp.name
             ])
-            logging.info(cmd); print(cmd)
+            logging.info(cmd)
             os.system(cmd)
-            time.sleep(0.1)
+            time.sleep(0.05)
 
     def stop(self):
         pid = self.get_pid()
