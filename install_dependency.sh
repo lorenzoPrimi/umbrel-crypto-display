@@ -9,4 +9,6 @@ sudo apt-get -y install \
   python3-requests \
   python3-dotenv \
   fonts-dejavu \
-  python3-pil
+  python3-websockets
+
+sudo pip3 install Pillow
