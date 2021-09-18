@@ -19,18 +19,9 @@ class FrameBuffer(iFB):
     def __str__(self):
         return f"FrameBuffer( stride: {self.stride}, size: {self.size}, bits per pixel: {self.bits_per_pixel} )"
 
-    def to_rgba(self, image: Image) -> bytes:
-        if image.mode == "RGBA" and self.bits_per_pixel == 32:
-            return image.tobytes()
-        if image.mode == "RGB" and self.bits_per_pixel == 32:
-            return bytes([x for r, g, b in image.getdata() for x in (255, r, g, b)])
-        if image.mode == "RGB" and self.bits_per_pixel == 24:
-            return image.tobytes()
-        if image.mode == "RGB" and self.bits_per_pixel == 16:
-            return bytes([x for r, g, b in image.getdata() for x in ((g & 0x1c) << 3 | (b >> 3), r & 0xf8 | (g >> 3))])
-
-        logging.warning("frame buffer using raw output")
-        return image.tobytes()
+    @staticmethod
+    def to_rgba(image: Image) -> bytes:
+        return image.convert("RGBA").tobytes()
 
     def show(self, image: Image, timeout: int):
         assert image.size <= self.size
