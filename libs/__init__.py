@@ -6,6 +6,7 @@ try:
     from fbi import *
     from ifb import *
     from script_interfaces import *
+    from http_client import *
 except ImportError:
     from .coingecko_api import *
     from .config import *
@@ -14,3 +15,4 @@ except ImportError:
     from .fbi import *
     from .ifb import *
     from .script_interfaces import *
+    from .http_client import *

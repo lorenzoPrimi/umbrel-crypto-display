@@ -4,3 +4,4 @@ requests
 psutil
 cachetools
 pygame
+websockets

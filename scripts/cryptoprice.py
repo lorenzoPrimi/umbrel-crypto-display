@@ -1,6 +1,6 @@
 import io
 from decimal import Decimal
-from typing import Tuple, Iterator
+from typing import Tuple
 
 import requests as requests
 from PIL import Image, ImageDraw
@@ -70,10 +70,17 @@ class Script(iScriptImageGenerator):
         perc_color = self.color("green") if pi['percentage'] >= 0 else self.color("red")
         self.drawcenteredtext(draw, f"24h: {pi['percentage']:.2f} %", 20, int(width / 8 * 4), height - padtop,
                               perc_color)
-        self.drawcenteredtext(draw, f"High: {pi['high']}", 20, int(width / 8 * 7), height - padtop)
-        self.drawcenteredtext(draw, f"Low: {pi['low']}", 20, int(width / 8 * 1), height - padtop)
-        self.drawbottomlefttext(draw, "Market data by coingecko", 16, 0, height, self.color("#40FF40"))
-        self.drawbottomrighttext(draw, f"as of {self.getdateandtime()}", 12, width, height)
+        self.drawcenteredtext(draw, s=f"H: {pi['high']}", fontsize=25, x=int(width / 8 * 7), y=height - padtop)
+        self.drawcenteredtext(draw, s=f"L: {pi['low']}", fontsize=25, x=int(width / 8 * 1), y=height - padtop)
+        self.drawbottomlefttext(
+            draw,
+            s="Market data by coingecko",
+            fontsize=16,
+            x=0,
+            y=height,
+            textcolor=self.color("#40FF40")
+        )
+        self.drawbottomrighttext(draw, f"as of {self.getdateandtime()}", fontsize=12, x=width, y=height)
         return im
 
     def generate_all_images(self, screen_size: Tuple[int, int]):
